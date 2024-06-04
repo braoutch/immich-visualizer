@@ -1,0 +1,12 @@
+[package]
+name = "immich_visualizer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ferris-says = "0.3.1"
+slint = "1.6.0"
+openapi = { path = "./immich_api" }
+tokio = { version = "1", features = ["full"] }
