@@ -125,8 +125,10 @@ async fn main() -> Result<(), slint::PlatformError> {
             // let index = rand::thread_rng().gen_range(0..=filtered_assets.len()-1);
             let image = client.download_image(asset.id.clone()).await.expect("Nooo");
 
-            let slint_image = bytes_to_image(image);
-            ui.set_image_source(slint::Image::load_from_memory(&slint_image).unwrap());
+            let slint_image = bytes_to_image(image).expect("Invalid image conversion");
+            // let img = image::load_from_memory_with_format(&image, ImageFormat::Jpeg)?;
+
+            ui.set_image_source(slint_image);
             // println!("Image downloaded: {}", _image.display());
         }
 
