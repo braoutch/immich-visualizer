@@ -1,0 +1,63 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+import { HorizontalBox, TextEdit, LineEdit } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "QRNote";
+    icon: @image-url("../resources/psyduck.png");
+    in-out property<image> qrnote: @image-url("../resources/psyduck.png");
+    out property<string> thetext: "";
+    in property<string> errormsg: "";
+    in property<int> charcount: 0;
+    in property<int> qr_size: 150;
+    callback text-is-edited();
+    VerticalBox {
+        TextEdit {
+            text: thetext;
+            preferred-width: 300px;
+            preferred-height: 300px;
+            edited(text) => {
+                thetext = text;
+                root.text-is-edited();
+            }
+        }
+        LineEdit {
+            text: charcount;
+            preferred-width: 300px;
+            read-only: true;
+            horizontal-alignment: center;
+        }
+        Image {
+            source : qrnote;
+            preferred-width: qr_size*1px;
+            preferred-height:qr_size*1px;
+        }
+        LineEdit {
+            text: errormsg;
+            preferred-width: 300px;
+            read-only: true;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+component MemoryTile inherits Rectangle {
+    width: 1280px;
+    height: 720px;
+    background: #3960D5;
+
+    in-out property <image> image_source;
+
+    Image {
+        // source: @image-url("./resources/psyduck.png");
+        source: root.image_source;
+        width: parent.width;
+        height: parent.height;
+    }
+}
+
+export component MyWindow inherits Window {
+    in property <image> image_source;
+    MemoryTile {
+        image_source: root.image_source;
+    }
+}

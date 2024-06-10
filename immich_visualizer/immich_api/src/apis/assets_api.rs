@@ -11,9 +11,10 @@
 
 use reqwest;
 use serde::{Deserialize, Serialize};
+use serde_with::Bytes;
 use crate::{apis::ResponseContent, models};
 use super::{Error, configuration};
-
+use std::str;
 
 /// struct for typed errors of method [`check_bulk_upload`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -298,13 +299,13 @@ pub async fn get_all_assets(configuration: &configuration::Configuration, ) -> R
     }
 }
 
-pub async fn download_asset(configuration: &configuration::Configuration, id: &str, key: Option<&str>) -> Result<std::path::PathBuf, Error<DownloadAssetError>> {
+pub async fn download_asset(configuration: &configuration::Configuration, id: &str, key: Option<&str>) -> Result<bytes::Bytes, Error<DownloadAssetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
 
-    let local_var_uri_str = format!("{}/assets/{id}/original", local_var_configuration.base_path, id=crate::apis::urlencode(id));
-    let mut local_var_req_builder = local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
+    let local_var_uri_str = format!("{}/download/asset/{id}", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
 
     if let Some(ref local_var_str) = key {
         local_var_req_builder = local_var_req_builder.query(&[("key", &local_var_str.to_string())]);
@@ -328,13 +329,19 @@ pub async fn download_asset(configuration: &configuration::Configuration, id: &s
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
-    let local_var_content = local_var_resp.text().await?;
-
-    if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-        serde_json::from_str(&local_var_content).map_err(Error::from)
+    
+    if local_var_status.is_success() {
+        let local_var_content = local_var_resp.bytes().await?;
+        // Handle binary content
+        Ok(local_var_content)
+    // } else if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
+    //     serde_json::from_str(&local_var_content).map_err(Error::from)
     } else {
+
+        let local_var_content = local_var_resp.text().await?;
+
         let local_var_entity: Option<DownloadAssetError> = serde_json::from_str(&local_var_content).ok();
-        let local_var_error = ResponseContent { status: local_var_status, content: local_var_content, entity: local_var_entity };
+        let local_var_error = ResponseContent { status: local_var_status, content: String::from("Damned"), entity: local_var_entity };
         Err(Error::ResponseError(local_var_error))
     }
 }
