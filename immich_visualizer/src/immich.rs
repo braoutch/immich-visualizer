@@ -3,10 +3,13 @@ extern crate openapi;
 // use std::io::{stdout, BufWriter};
 
 use openapi::apis::server_info_api::ping_server; // Replace with the actual module paths
-use openapi::apis::assets_api::{download_asset, get_all_assets, DownloadAssetError}; // Replace with the actual module paths
+use openapi::apis::assets_api::{download_asset, get_all_assets}; // Replace with the actual module paths
 use openapi::apis::configuration::{ApiKey, Configuration};   // Replace with the actual module paths
 use openapi::models;
 use bytes::Bytes;
+use futures::executor; 
+use std::fs::File;
+use std::io::Write;
 
 pub struct ApiClient {
     config: Configuration,
@@ -34,16 +37,25 @@ impl ApiClient {
     //     &self.config.base_path
     // }
 
-    pub async fn download_image(&self, id: String) -> Result<Bytes, String> {
+    pub fn download_image(&self, id: String) -> Result<Bytes, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message: Result<Bytes, String> = match download_asset(&self.config, &id, None).await {
+        let message: Result<Bytes, String> = match executor::block_on(download_asset(&self.config, &id, None)) {
             Ok(response) => {
                 if self.verbose {
-                    println!("Download response: {:?}", response);
+                    let file_path = "./debug.jpg";
+
+                    // Create a new file at the specified path
+                    let mut file = File::create(file_path).expect("Unable to create file");
+            
+                    // Write the image bytes to the file
+                    file.write_all(&response).expect("Unable to write data");
+            
+                    // Close the file
+                    file.flush().expect("Unable to flush data");
                 }
                 Ok(response)
             },
@@ -58,13 +70,13 @@ impl ApiClient {
         message
     }
 
-    pub async fn get_all_assets(&self) -> Result<Vec<models::AssetResponseDto>, String> {
+    pub fn get_all_assets(&self) -> Result<Vec<models::AssetResponseDto>, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message: Result<Vec<models::AssetResponseDto>, String> = match get_all_assets(&self.config).await {
+        let message: Result<Vec<models::AssetResponseDto>, String> = match executor::block_on(get_all_assets(&self.config)) {
             Ok(response) => {
                 if self.verbose {
                     // println!("Ping response: {:?}", response);
@@ -73,7 +85,7 @@ impl ApiClient {
             },
             Err(e) => {
                 if self.verbose {
-                    // eprintln!("Ping response: {:?}", e);
+                    eprintln!("Ping response: {:?}", e);
                 }
                 Err(String::from("Aaaaarrrh!"))
             },
@@ -83,13 +95,13 @@ impl ApiClient {
     }
 
     // Example method to simulate an API call
-    pub async fn ping(&self) -> Result<String, String> {
+    pub fn ping(&self) -> Result<String, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message = match ping_server(&self.config).await {
+        let message = match executor::block_on(ping_server(&self.config)) {
             Ok(response) => {
                 if self.verbose {
                     println!("Ping response: {:?}", response);
