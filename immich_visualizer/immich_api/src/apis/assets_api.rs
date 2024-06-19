@@ -299,7 +299,7 @@ pub async fn get_all_assets(configuration: &configuration::Configuration, ) -> R
     }
 }
 
-pub async fn download_asset(configuration: &configuration::Configuration, id: &str, key: Option<&str>) -> Result<bytes::Bytes, Error<DownloadAssetError>> {
+pub async fn download_asset(configuration: &configuration::Configuration, id: &str, key: Option<&str>) -> Result<(bytes::Bytes, String), Error<DownloadAssetError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
@@ -329,13 +329,25 @@ pub async fn download_asset(configuration: &configuration::Configuration, id: &s
     let local_var_resp = local_var_client.execute(local_var_req).await?;
 
     let local_var_status = local_var_resp.status();
+    let headers = local_var_resp.headers();
     
     if local_var_status.is_success() {
-        let local_var_content = local_var_resp.bytes().await?;
-        // Handle binary content
-        Ok(local_var_content)
-    // } else if !local_var_status.is_client_error() && !local_var_status.is_server_error() {
-    //     serde_json::from_str(&local_var_content).map_err(Error::from)
+        
+        // retrieve the filename behind the bytes
+        let filename: &str = headers.get("Content-Type").unwrap().to_str().unwrap(); // video/mp4 or image/something
+        // print filename
+        println!("Filename: {}", filename);
+        if filename.contains("image") {
+            let ret = filename.to_string();
+            // Handle binary content
+            Ok((local_var_resp.bytes().await?, ret))
+        } else {
+            // Handle binary content
+            let local_var_entity: Option<DownloadAssetError> = serde_json::from_str("{}").ok();
+            let local_var_error = ResponseContent { status: local_var_status, content: format!("Invalid format {}", filename), entity: local_var_entity };
+            Err(Error::ResponseError(local_var_error))
+        }
+
     } else {
 
         let local_var_content = local_var_resp.text().await?;

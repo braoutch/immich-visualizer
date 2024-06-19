@@ -37,14 +37,14 @@ impl ApiClient {
     //     &self.config.base_path
     // }
 
-    pub fn download_image(&self, id: String) -> Result<Bytes, String> {
+    pub fn download_image(&self, id: String) -> Result<(Bytes, String), String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message: Result<Bytes, String> = match executor::block_on(download_asset(&self.config, &id, None)) {
-            Ok(response) => {
+        let message: Result<(Bytes, String), String> = match executor::block_on(download_asset(&self.config, &id, None)) {
+            Ok((response, type_str)) => {
                 if self.verbose {
                     let file_path = "./debug.jpg";
 
@@ -57,7 +57,7 @@ impl ApiClient {
                     // Close the file
                     file.flush().expect("Unable to flush data");
                 }
-                Ok(response)
+                Ok((response, type_str))
             },
             Err(e) => {
                 if self.verbose {

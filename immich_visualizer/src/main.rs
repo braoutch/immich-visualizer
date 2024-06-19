@@ -27,9 +27,21 @@ pub fn start() {
     main().unwrap();
 }
 
+fn type_str_to_image_type(type_str: &str) -> Option<ImageFormat> {
+    match type_str {
+        "image/jpeg" => Some(ImageFormat::Jpeg),
+        "image/png" => Some(ImageFormat::Png),
+        "image/gif" => Some(ImageFormat::Gif),
+        "image/bmp" => Some(ImageFormat::Bmp),
+        "image/tiff" => Some(ImageFormat::Tiff),
+        "image/x-icon" => Some(ImageFormat::Ico),
+        _ => None,
+    }
+}
+
 // Function to convert Bytes to an image that Slint can display
-fn bytes_to_image(bytes: Bytes) -> Result<slint::Image, image::ImageError> {
-    let img = image::load_from_memory_with_format(&bytes, ImageFormat::Jpeg)?;
+fn bytes_to_image(bytes: Bytes, format: ImageFormat) -> Result<slint::Image, image::ImageError> {
+    let img = image::load_from_memory_with_format(&bytes, format)?;
     let rgba_img = img.to_rgba8();
 
     let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
@@ -94,25 +106,15 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     for (_index, asset) in filtered_assets.iter().enumerate() {
         eprintln!("Asset: {:?}", asset.id.clone());
-        let _image = client.download_image(asset.id.clone()).expect("Nooo");
-        let _slint_image = bytes_to_image(_image).expect("Invalid image conversion");
+        let _image: (Bytes, String) = client.download_image(asset.id.clone()).expect("Nooo");
+        let image_format = type_str_to_image_type(&_image.1).expect("Invalid image format");
+        let _slint_image = bytes_to_image(_image.0, image_format).expect("Invalid image conversion");
         ui.set_image_source(_slint_image);
         break;
     }   
     /////////////////////////////////////////////
     // END TEST /////////////////////////////////////////////
     /////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
 
     thread::spawn(move || {
         let current_year = Utc::now().year();
@@ -136,7 +138,7 @@ async fn main() -> Result<(), slint::PlatformError> {
 
             for (_index, asset) in filtered_assets.iter().enumerate() {
                 eprintln!("Asset: {:?}", asset.id.clone());
-                // let image = client.download_image(asset.id.clone()).expect("Nooo");
+                let image = client.download_image(asset.id.clone()).expect("Nooo");
                 // let slint_image = bytes_to_image(image).expect("Invalid image conversion");
                 
                 // let ui = ui_handle.unwrap();
