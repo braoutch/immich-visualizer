@@ -3,6 +3,7 @@ use std::env;
 use std::time;
 use std::thread;
 use openapi::models;
+use openapi::models::image_format;
 use rand::Rng;
 use chrono::Utc;
 use chrono::prelude::*;
@@ -107,8 +108,13 @@ async fn main() -> Result<(), slint::PlatformError> {
     for (_index, asset) in filtered_assets.iter().enumerate() {
         eprintln!("Asset: {:?}", asset.id.clone());
         let _image: (Bytes, String) = client.download_image(asset.id.clone()).expect("Nooo");
-        let image_format = type_str_to_image_type(&_image.1).expect("Invalid image format");
-        let _slint_image = bytes_to_image(_image.0, image_format).expect("Invalid image conversion");
+        // check the type of the image and, if it's not jpeg, continue the loop
+        let image_format = type_str_to_image_type(&_image.1);
+        if image_format != Some(ImageFormat::Jpeg) {
+            continue;
+        }
+
+        let _slint_image = bytes_to_image(_image.0, image_format.unwrap()).expect("Invalid image conversion");
         ui.set_image_source(_slint_image);
         break;
     }   
@@ -138,11 +144,16 @@ async fn main() -> Result<(), slint::PlatformError> {
 
             for (_index, asset) in filtered_assets.iter().enumerate() {
                 eprintln!("Asset: {:?}", asset.id.clone());
-                let image = client.download_image(asset.id.clone()).expect("Nooo");
-                // let slint_image = bytes_to_image(image).expect("Invalid image conversion");
-                
-                // let ui = ui_handle.unwrap();
-                // ui.set_image_source(slint_image);
+                let image: (Bytes, String) = client.download_image(asset.id.clone()).expect("Nooo");
+                let image_format = type_str_to_image_type(&image.1);
+                if image_format != Some(ImageFormat::Jpeg) {
+                    continue;
+                }
+        
+                let _slint_image = bytes_to_image(image.0, image_format.unwrap()).expect("Invalid image conversion");
+                let ui = ui_handle.unwrap();
+                ui.set_image_source(_slint_image);
+
                 break;
             }            
 

@@ -50,7 +50,8 @@ component MemoryTile inherits Rectangle {
     Image {
         // source: @image-url("./resources/psyduck.png");
         source: root.image_source;
-        width: parent.width;
+        image-fit: contain;
+        // width: parent.width;
         height: parent.height;
     }
 }
