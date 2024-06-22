@@ -53,6 +53,8 @@ pub struct AssetResponseDto {
     pub original_file_name: String,
     #[serde(rename = "originalPath")]
     pub original_path: String,
+    #[serde(rename = "originalMimeType")]
+    pub original_mime_type: String,
     #[serde(rename = "owner", skip_serializing_if = "Option::is_none")]
     pub owner: Option<Box<models::UserResponseDto>>,
     #[serde(rename = "ownerId")]
@@ -80,7 +82,7 @@ pub struct AssetResponseDto {
 }
 
 impl AssetResponseDto {
-    pub fn new(checksum: String, device_asset_id: String, device_id: String, duration: String, file_created_at: String, file_modified_at: String, has_metadata: bool, id: String, is_archived: bool, is_favorite: bool, is_offline: bool, is_trashed: bool, local_date_time: String, original_file_name: String, original_path: String, owner_id: String, resized: bool, stack_count: Option<i32>, thumbhash: Option<String>, r#type: models::AssetTypeEnum, updated_at: String) -> AssetResponseDto {
+    pub fn new(checksum: String, device_asset_id: String, device_id: String, duration: String, file_created_at: String, file_modified_at: String, has_metadata: bool, id: String, is_archived: bool, is_favorite: bool, is_offline: bool, is_trashed: bool, local_date_time: String, original_file_name: String, original_path: String, original_mime_type: String, owner_id: String, resized: bool, stack_count: Option<i32>, thumbhash: Option<String>, r#type: models::AssetTypeEnum, updated_at: String) -> AssetResponseDto {
         AssetResponseDto {
             checksum,
             device_asset_id,
@@ -101,6 +103,7 @@ impl AssetResponseDto {
             local_date_time,
             original_file_name,
             original_path,
+            original_mime_type,
             owner: None,
             owner_id,
             people: None,

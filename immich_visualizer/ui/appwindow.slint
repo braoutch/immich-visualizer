@@ -46,6 +46,7 @@ component MemoryTile inherits Rectangle {
     background: #3960D5;
 
     in-out property <image> image_source;
+    in-out property <string> image_text;
 
     Image {
         // source: @image-url("./resources/psyduck.png");
@@ -58,6 +59,7 @@ component MemoryTile inherits Rectangle {
 
 export component MyWindow inherits Window {
     in property <image> image_source;
+    in property <string> image_text;
     MemoryTile {
         image_source: root.image_source;
     }

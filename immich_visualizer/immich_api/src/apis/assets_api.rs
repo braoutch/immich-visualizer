@@ -304,8 +304,8 @@ pub async fn download_asset(configuration: &configuration::Configuration, id: &s
 
     let local_var_client = &local_var_configuration.client;
 
-    let local_var_uri_str = format!("{}/download/asset/{id}", local_var_configuration.base_path, id=crate::apis::urlencode(id));
-    let mut local_var_req_builder = local_var_client.request(reqwest::Method::POST, local_var_uri_str.as_str());
+    let local_var_uri_str = format!("{}/assets/{id}/original", local_var_configuration.base_path, id=crate::apis::urlencode(id));
+    let mut local_var_req_builder = local_var_client.request(reqwest::Method::GET, local_var_uri_str.as_str());
 
     if let Some(ref local_var_str) = key {
         local_var_req_builder = local_var_req_builder.query(&[("key", &local_var_str.to_string())]);
@@ -336,7 +336,7 @@ pub async fn download_asset(configuration: &configuration::Configuration, id: &s
         // retrieve the filename behind the bytes
         let filename: &str = headers.get("Content-Type").unwrap().to_str().unwrap(); // video/mp4 or image/something
         // print filename
-        println!("Filename: {}", filename);
+        // println!("Filename: {}", filename);
         if filename.contains("image") {
             let ret = filename.to_string();
             // Handle binary content

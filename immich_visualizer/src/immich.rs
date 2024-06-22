@@ -3,11 +3,11 @@ extern crate openapi;
 // use std::io::{stdout, BufWriter};
 
 use openapi::apis::server_info_api::ping_server; // Replace with the actual module paths
-use openapi::apis::assets_api::{download_asset, get_all_assets}; // Replace with the actual module paths
+use openapi::apis::assets_api::{download_asset, get_all_assets, get_random}; // Replace with the actual module paths
 use openapi::apis::configuration::{ApiKey, Configuration};   // Replace with the actual module paths
 use openapi::models;
 use bytes::Bytes;
-use futures::executor; 
+use futures::executor;
 use std::fs::File;
 use std::io::Write;
 
@@ -37,13 +37,13 @@ impl ApiClient {
     //     &self.config.base_path
     // }
 
-    pub fn download_image(&self, id: String) -> Result<(Bytes, String), String> {
+    pub async fn download_image(&self, id: String) -> Result<(Bytes, String), String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message: Result<(Bytes, String), String> = match executor::block_on(download_asset(&self.config, &id, None)) {
+        let message: Result<(Bytes, String), String> = match download_asset(&self.config, &id, None).await {
             Ok((response, type_str)) => {
                 if self.verbose {
                     let file_path = "./debug.jpg";
@@ -70,7 +70,7 @@ impl ApiClient {
         message
     }
 
-    pub fn get_all_assets(&self) -> Result<Vec<models::AssetResponseDto>, String> {
+    pub fn _get_all_assets(&self) -> Result<Vec<models::AssetResponseDto>, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
@@ -94,14 +94,38 @@ impl ApiClient {
         message
     }
 
-    // Example method to simulate an API call
-    pub fn ping(&self) -> Result<String, String> {
+    pub async fn get_random_asset(&self) -> Result<Vec<models::AssetResponseDto>, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message = match executor::block_on(ping_server(&self.config)) {
+        let message: Result<Vec<models::AssetResponseDto>, String> = match get_random(&self.config, Some(30.0)).await {
+            Ok(response) => {
+                if self.verbose {
+                    // println!("Ping response: {:?}", response);
+                }
+                Ok(response)
+            },
+            Err(e) => {
+                if self.verbose {
+                    eprintln!("Ping response: {:?}", e);
+                }
+                Err(String::from("Aaaaarrrh!"))
+            },
+        };
+
+        message
+    }
+
+    // Example method to simulate an API call
+    pub async fn ping(&self) -> Result<String, String> {
+        // Simulate an API call
+        if self.config.base_path.is_empty() {
+            return Err("Base URL is empty".to_string())
+        }
+
+        let message = match ping_server(&self.config).await {
             Ok(response) => {
                 if self.verbose {
                     println!("Ping response: {:?}", response);

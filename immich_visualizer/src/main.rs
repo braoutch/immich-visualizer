@@ -1,13 +1,14 @@
 use std::process::exit;
 use std::env;
 use std::time;
-use std::thread;
+// use std::thread;
+// use tokio::runtime::Runtime;
+
 use openapi::models;
-use openapi::models::image_format;
-use rand::Rng;
-use chrono::Utc;
-use chrono::prelude::*;
-use rand::seq::SliceRandom;
+// use rand::Rng;
+// use chrono::Utc;
+// use chrono::prelude::*;
+// use rand::seq::SliceRandom;
 use bytes::Bytes;
 use image::ImageFormat;
 use slint::SharedPixelBuffer;
@@ -56,6 +57,10 @@ fn bytes_to_image(bytes: Bytes, format: ImageFormat) -> Result<slint::Image, ima
 
 #[tokio::main]
 async fn main() -> Result<(), slint::PlatformError> {
+
+    // let rt = Runtime::new().unwrap();
+    // let handle = rt.handle().clone();
+
     let env_api_key = env::var("IMMICH_API_KEY");
 
     // Handle the Option
@@ -71,7 +76,7 @@ async fn main() -> Result<(), slint::PlatformError> {
     };
 
     let client = immich::ApiClient::new("http://192.168.50.214:2283/api".to_string(), api_key.to_string(), true);
-    let _res = match client.ping() {
+    let _res = match client.ping().await {
         Ok(response) => {
             println!("Ping response: {:?}", response);
             Ok(String::from("Immich connected."))
@@ -87,30 +92,30 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     let ui_handle = ui.as_weak();
 
-    eprintln!("Retrieving all assets...");
-    let all_assets: Vec<models::AssetResponseDto> = client.get_all_assets().expect("F***");
-
+    
     /////////////////////////////////////////////
     // test
     ///////////////
-    let current_year = Utc::now().year();
-    let year = rand::thread_rng().gen_range(2012..=current_year);
-    // Generate a random year between 1992 and the current year
+    eprintln!("Retrieving all assets...");
+    // let all_assets: Vec<models::AssetResponseDto> = client.get_all_assets().expect("F***");
+    let random_asset: Vec<models::AssetResponseDto> = client.get_random_asset().await.expect("F***");
+    // print the number of items in random_asset
+    eprintln!("{} assets retrieved", random_asset.len());
 
-    let mut filtered_assets: Vec<&models::AssetResponseDto> = all_assets.iter().filter(|&asset| {
-        // eprintln!("YEAR: {}", asset.local_date_time);
-        asset.file_created_at.starts_with(&year.to_string())
-    }).collect();
+    for (_index, asset) in random_asset.iter().enumerate() {
+        if asset.original_mime_type != "image/jpeg" {
+            eprintln!("Skip image format: {:?}", asset.original_mime_type);
+            continue;
+        }
+        eprintln!("Image format: {:?}", asset.original_mime_type);
 
-    let mut rng = rand::thread_rng();
-    filtered_assets.shuffle(&mut rng);
 
-    for (_index, asset) in filtered_assets.iter().enumerate() {
         eprintln!("Asset: {:?}", asset.id.clone());
-        let _image: (Bytes, String) = client.download_image(asset.id.clone()).expect("Nooo");
+        let _image: (Bytes, String) = client.download_image(asset.id.clone()).await.expect("Nooo");
         // check the type of the image and, if it's not jpeg, continue the loop
         let image_format = type_str_to_image_type(&_image.1);
         if image_format != Some(ImageFormat::Jpeg) {
+            eprintln!("Skip image format: {:?}", image_format);
             continue;
         }
 
@@ -122,51 +127,67 @@ async fn main() -> Result<(), slint::PlatformError> {
     // END TEST /////////////////////////////////////////////
     /////////////////////////////////////////////
 
-    thread::spawn(move || {
-        let current_year = Utc::now().year();
-        let mut year;
-        let mut switch_time = Utc::now().timestamp();
+    tokio::spawn(async move {
         let mut count = 0;
         loop {
-            // beginning of the loop, get the current hour
-            year = rand::thread_rng().gen_range(2012..=current_year);
-            // Generate a random year between 1992 and the current year
+            
+            let client = immich::ApiClient::new("http://192.168.50.214:2283/api".to_string(), api_key.to_string(), true);
+            eprintln!("PING {}...", count);
+            let _res = match client.ping().await {
+                Ok(response) => {
+                    println!("Ping response: {:?}", response);
+                    Ok(String::from("Immich connected."))
+                },
+                Err(e) => {
+                    eprintln!("Error calling /server-info/ping: {:?}", e);
+                    Err(String::from("Aaaaarrrh!"))
+                },
+            };
 
-            let mut filtered_assets: Vec<&models::AssetResponseDto> = all_assets.iter().filter(|&asset| {
-                // eprintln!("YEAR: {}", asset.local_date_time);
-                asset.file_created_at.starts_with(&year.to_string())
-            }).collect();
+            eprintln!("Retrieving a random asset...");
 
-            eprintln!("{} assets retrieved in year {}", filtered_assets.len(), year);
+            let random_asset: Vec<models::AssetResponseDto> = client.get_random_asset().await.expect("F***");
 
-            let mut rng = rand::thread_rng();
-            filtered_assets.shuffle(&mut rng);
+            // print the number of items in random_asset
+            eprintln!("{} assets retrieved", random_asset.len());
 
-            for (_index, asset) in filtered_assets.iter().enumerate() {
-                eprintln!("Asset: {:?}", asset.id.clone());
-                let image: (Bytes, String) = client.download_image(asset.id.clone()).expect("Nooo");
-                let image_format = type_str_to_image_type(&image.1);
-                if image_format != Some(ImageFormat::Jpeg) {
+            for (_index, asset) in random_asset.iter().enumerate() {
+                if asset.original_mime_type != "image/jpeg" {
+                    eprintln!("Skip image format: {:?}", asset.original_mime_type);
                     continue;
                 }
-        
-                let _slint_image = bytes_to_image(image.0, image_format.unwrap()).expect("Invalid image conversion");
-                let ui = ui_handle.unwrap();
-                ui.set_image_source(_slint_image);
+                eprintln!("Image format: {:?}", asset.original_mime_type);
 
+
+                eprintln!("Asset: {:?}", asset.id.clone());
+                let _image: (Bytes, String) = client.download_image(asset.id.clone()).await.expect("Nooo");
+                // check the type of the image and, if it's not jpeg, continue the loop
+                let image_format = type_str_to_image_type(&_image.1);
+                if image_format != Some(ImageFormat::Jpeg) {
+                    eprintln!("Skip image format: {:?}", image_format);
+                    continue;
+                }
+
+                let _slint_image = bytes_to_image(_image.0, image_format.unwrap()).expect("Invalid image conversion");
+                // let ui = ui_handle.unwrap();
+                let handle_copy = ui_handle.clone();
+                // slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_source(_slint_image.clone()));
+                let _ = slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_text(String::from("Hello, world!").into()));
+                // ui.set_image_source(_slint_image);
                 break;
-            }            
+            }   
+        
 
-            std::thread::sleep(time::Duration::from_millis(500));
+            std::thread::sleep(time::Duration::from_millis(2000));
             count += 1;
             if count > 3 {
                 break;
             }
 
-            if Utc::now().timestamp() - switch_time > 5 {
-                switch_time = Utc::now().timestamp();
-                break;
-            }
+            // if Utc::now().timestamp() - switch_time > 5 {
+            //     switch_time = Utc::now().timestamp();
+            //     break;
+            // }
         }
      });
 
