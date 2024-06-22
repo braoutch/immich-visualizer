@@ -1,5 +1,4 @@
-import { Button, VerticalBox } from "std-widgets.slint";
-import { HorizontalBox, TextEdit, LineEdit } from "std-widgets.slint";
+import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "QRNote";
@@ -40,6 +39,30 @@ export component AppWindow inherits Window {
     }
 }
 
+component SettingsButton inherits Rectangle {
+    callback clicked;
+    in property <bool> pressed;
+
+    opacity: touchArea.pressed ? 100% : 70%;
+    animate opacity { duration: 50ms;  }
+    width: 5%;
+    background: #3960d500;
+
+    Image {
+        source: @image-url("../resources/settings.svg");
+        width: parent.width;
+        height: parent.height;
+    }
+
+    touchArea := TouchArea {
+
+        clicked => {
+            // Delegate to the user of this element
+            root.clicked();
+        }
+    }
+}
+
 component MemoryTile inherits Rectangle {
     // width: 1280px;
     // height: 720px;
@@ -62,7 +85,41 @@ component MemoryTile inherits Rectangle {
 export component MyWindow inherits Window {
     in property <image> image_source;
     in property <string> image_text;
-    MemoryTile {
+    in-out property <int> click_count;
+    in-out property <int> click_count_native;
+    in-out property <int> state;
+
+    states [
+        main-view when state == 0: {
+            // circle1.x: 0px; circle1.y: 40px; circle1.background: green;
+            // circle2.x: 0px; circle2.y: 0px; circle2.background: blue;
+        }
+        settings-view when state == 1: {
+            // circle1.x: 170px; circle1.y: 70px; circle1.background: green;
+            // circle2.x: 170px; circle2.y: 00px; circle2.background: blue;
+        }
+    ]
+
+    memoryTile := MemoryTile {
         image_source: root.image_source;
     }
+
+    settingsButtonCustom := SettingsButton {
+        x: parent.width * 0.9;
+        y: parent.height * 0.05;
+        // icon: @image-url("../resources/psyduck.png");
+        width: 5%;
+        height: self.width;// So that it's a square
+        clicked => { root.click_count += 1; root.state = 0; }    
+    }
+
+    // settingsButton := Button {
+    //     x: parent.width * 0.9;
+    //     y: parent.height * 0.05;
+    //     text: "Settings";
+    //     // icon: @image-url("../resources/psyduck.png");
+    //     width: 5%;
+    //     height: self.width * (root.height / root.width);
+    //     clicked => { root.click_count_native += 1; root.state = 1; }
+    // }
 }
