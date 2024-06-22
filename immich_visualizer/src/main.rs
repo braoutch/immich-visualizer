@@ -55,6 +55,20 @@ fn bytes_to_image(bytes: Bytes, format: ImageFormat) -> Result<slint::Image, ima
     Ok(slint::Image::from_rgba8(buffer))
 }
 
+// Function to convert Bytes to an image that Slint can display
+fn bytes_to_shared_image(bytes: Bytes, format: ImageFormat) -> Result<SharedPixelBuffer<Rgba8Pixel>, image::ImageError> {
+    let img = image::load_from_memory_with_format(&bytes, format)?;
+    let rgba_img = img.to_rgba8();
+
+    let buffer: SharedPixelBuffer<Rgba8Pixel> = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+        rgba_img.as_raw(),
+        rgba_img.width(),
+        rgba_img.height(),
+    );
+
+    Ok(buffer)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), slint::PlatformError> {
 
@@ -168,11 +182,15 @@ async fn main() -> Result<(), slint::PlatformError> {
                     continue;
                 }
 
-                let _slint_image = bytes_to_image(_image.0, image_format.unwrap()).expect("Invalid image conversion");
+                // let _slint_image = bytes_to_image(_image.0, image_format.unwrap()).expect("Invalid image conversion");
+                let pixel_buffer = bytes_to_shared_image(_image.0, image_format.unwrap()).expect("Invalid image conversion");
                 // let ui = ui_handle.unwrap();
                 let handle_copy = ui_handle.clone();
-                // slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_source(_slint_image.clone()));
-                let _ = slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_text(String::from("Hello, world!").into()));
+                let _ = slint::invoke_from_event_loop(move || {
+                    let image = slint::Image::from_rgba8_premultiplied(pixel_buffer);
+                    handle_copy.unwrap().set_image_source(image);
+                });
+                // let _ = slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_text(String::from("Hello, world!").into()));
                 // ui.set_image_source(_slint_image);
                 break;
             }   
