@@ -43,15 +43,24 @@ component SettingsButton inherits Rectangle {
     callback clicked;
     in property <bool> pressed;
 
-    opacity: touchArea.pressed ? 100% : 70%;
+    opacity: touchArea.pressed ? 100% : 60%;
     animate opacity { duration: 50ms;  }
-    width: 5%;
-    background: #3960d500;
+    background: #b6b6b600;
 
     Image {
-        source: @image-url("../resources/settings.svg");
+        source: @image-url("../resources/settings.png");
+        width: parent.width * 0.9;
+        height: parent.height * 0.9;
+    }
+
+    Rectangle {
+        border-radius: 15px;
         width: parent.width;
         height: parent.height;
+        //color: touchArea.pressed ? #00000050 : #00000000;
+        background: #9a9a9a;
+        border-color: #262626;
+        z: -1;
     }
 
     touchArea := TouchArea {
@@ -74,7 +83,6 @@ component MemoryTile inherits Rectangle {
     in-out property <string> image_text;
 
     Image {
-        // source: @image-url("./resources/psyduck.png");
         source: root.image_source;
         image-fit: contain;
         // width: parent.width;
@@ -88,6 +96,7 @@ export component MyWindow inherits Window {
     in-out property <int> click_count;
     in-out property <int> click_count_native;
     in-out property <int> state;
+    callback settings-clicked();
 
     states [
         main-view when state == 0: {
@@ -105,21 +114,19 @@ export component MyWindow inherits Window {
     }
 
     settingsButtonCustom := SettingsButton {
-        x: parent.width * 0.9;
-        y: parent.height * 0.05;
-        // icon: @image-url("../resources/psyduck.png");
+        x: root.width * 0.93;
+        y: parent.height * 0.02 * root.width/root.height;
         width: 5%;
         height: self.width;// So that it's a square
-        clicked => { root.click_count += 1; root.state = 0; }    
+        clicked => { 
+            root.click_count += 1;
+            if root.state == 0
+            {
+                root.state = 206;
+            } else {
+                root.state = -root.state;
+            } 
+            settings-clicked(); 
+        }    
     }
-
-    // settingsButton := Button {
-    //     x: parent.width * 0.9;
-    //     y: parent.height * 0.05;
-    //     text: "Settings";
-    //     // icon: @image-url("../resources/psyduck.png");
-    //     width: 5%;
-    //     height: self.width * (root.height / root.width);
-    //     clicked => { root.click_count_native += 1; root.state = 1; }
-    // }
 }

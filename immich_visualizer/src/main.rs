@@ -91,7 +91,17 @@ async fn main() -> Result<(), slint::PlatformError> {
     };
 
     let ui = MyWindow::new()?;
-    // ui.set_image_source(@image-url("./resources/psyduck.png"))
+
+    ui.set_state(212);
+
+    ui.on_settings_clicked({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.unwrap();
+            // ui.set_counter(ui.get_counter() + 1);
+            eprintln!("Settings clicked: {}", ui.get_state());
+        }
+    });
 
     let ui_handle = ui.as_weak();
 
