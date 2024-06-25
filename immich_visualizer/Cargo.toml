@@ -21,3 +21,15 @@ async-std = { version = "1", features = ["attributes", "tokio1"] }
 
 [build-dependencies]
 slint-build = "1.0"
+
+###
+# WASM stuff
+# [target.'cfg(target_arch = "wasm32")'.dependencies]
+# wasm-bindgen = { version = "0.2" }
+# getrandom = { version = "0.2.2", features = ["js"] }
+
+###
+# Turn into a library for WASM
+# [lib]
+# path = "src/main.rs"
+# crate-type = ["cdylib"]

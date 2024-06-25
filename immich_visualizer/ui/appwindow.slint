@@ -1,4 +1,4 @@
-import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button } from "std-widgets.slint";
+import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
     title: "QRNote";
@@ -95,8 +95,11 @@ export component MyWindow inherits Window {
     in property <string> image_text;
     in-out property <int> click_count;
     in-out property <int> click_count_native;
-    in-out property <int> state;
+    in-out property <int> state: -206;
+    in-out property <int> duration_value <=> durationSpinBox.value;
+    out property<string> thetext: "";
     callback settings-clicked();
+    callback duration-value-changed();
 
     states [
         main-view when state == 0: {
@@ -128,5 +131,92 @@ export component MyWindow inherits Window {
             } 
             settings-clicked(); 
         }    
+    }
+
+    settingsPanel := Rectangle {
+
+        height: 50%;
+        width: 50%;
+        visible: root.state == 206;
+        background_panel := Rectangle {
+            border-radius: 15px;
+            width: parent.width;
+            height: parent.height;
+            background: #9a9a9a;
+            border-color: #262626;
+            z: -1;
+        }
+        VerticalLayout {
+            height: 90%;
+            width: 90%;
+            padding: 5px;
+            spacing: 5px;
+            
+            Text {
+                text: "PARAMÈTRES";
+                vertical-alignment: top;
+                font-size: 50px;
+                horizontal-alignment: center;
+
+
+                // color (in brush): The color of the text. (default value: depends on the style)
+                // font-family (in string): The name of the font family selected for rendering the text.
+                // font-size (in length): The font size of the text.
+                // font-weight (in int): The weight of the font. The values range from 100 (lightest) to 900 (thickest). 400 is the normal weight.
+                // font-italic (in bool): Whether or not the font face should be drawn italicized or not. (default value: false)
+                // horizontal-alignment (in enum TextHorizontalAlignment): The horizontal alignment of the text.
+                // letter-spacing (in length): The letter spacing allows changing the spacing between the glyphs. A positive value increases the spacing and a negative value decreases the distance. (default value: 0)
+                // overflow (in enum TextOverflow): What happens when the text overflows (default value: clip).
+                // text (in string): The text rendered.
+                // vertical-alignment (in enum TextVerticalAlignment): The vertical alignment of the text.
+                // wrap (in enum TextWrap): The way the text wraps (default value: no-wrap).
+
+            }
+            HorizontalBox {
+                Text {
+                    text: "Durée par image:";
+                    horizontal-stretch: 1;
+
+                }
+                durationSpinBox := SpinBox {
+                    value: 2;
+                    minimum: 1;
+                    horizontal-stretch: 0;
+                    edited() => {
+                        root.duration-value-changed();
+                    }
+                }
+
+                Text {
+                    text: "secondes";
+                    horizontal-stretch: 1;
+                }
+            }
+            TextEdit {
+                text: thetext;
+                preferred-width: 300px;
+                preferred-height: 300px;
+                edited(text) => {
+                    thetext = text;
+                }
+            }
+            LineEdit {
+                text: "charcount";
+                preferred-width: 300px;
+                read-only: true;
+                horizontal-alignment: center;
+            }
+            Image {
+                source : @image-url("../debug.jpg");
+                preferred-width: 30*1px;
+                preferred-height:30*1px;
+            }
+            LineEdit {
+                text: "errormsg";
+                preferred-width: 300px;
+                read-only: true;
+                horizontal-alignment: center;
+            }
+        }
     }
 }

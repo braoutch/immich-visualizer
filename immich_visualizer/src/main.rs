@@ -1,6 +1,7 @@
 use std::process::exit;
 use std::env;
 use std::time;
+use std::sync::mpsc;
 // use std::thread;
 // use tokio::runtime::Runtime;
 
@@ -20,6 +21,9 @@ mod immich;
 extern crate openapi;
 
 slint::include_modules!();
+
+#[cfg_attr(target_arch = "wasm32",
+wasm_bindgen::prelude::wasm_bindgen(start))]
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
@@ -59,10 +63,7 @@ fn bytes_to_shared_image(bytes: &Bytes, format: ImageFormat) -> Result<SharedPix
 }
 
 #[tokio::main]
-async fn main() -> Result<(), slint::PlatformError> {
-
-    // let rt = Runtime::new().unwrap();
-    // let handle = rt.handle().clone();
+pub async fn main() -> Result<(), slint::PlatformError> {
 
     let env_api_key = env::var("IMMICH_API_KEY");
 
@@ -91,8 +92,11 @@ async fn main() -> Result<(), slint::PlatformError> {
     };
 
     let ui = MyWindow::new()?;
+    ui.window().set_fullscreen(true);
 
-    ui.set_state(212);
+    // Create a channel to communicate with the event loop
+    let (tx, rx) = mpsc::channel();
+    let tx1 = tx.clone();
 
     ui.on_settings_clicked({
         let ui_handle = ui.as_weak();
@@ -103,15 +107,26 @@ async fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    let ui_handle = ui.as_weak();
+    ui.on_duration_value_changed({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.unwrap();
+            eprintln!("Duration value changed: {}", ui.get_duration_value());
+            tx1.send(ui.get_duration_value()).unwrap();
+        }
+    });
 
+    let ui_handle = ui.as_weak();
+    tx.send(ui.get_duration_value()).unwrap();
 
     tokio::spawn(async move {
         let mut count = 0;
+        let mut wait_duration = rx.recv().unwrap();
         loop {
             let start_time = Instant::now();
             let client = immich::ApiClient::new("http://192.168.50.214:2283/api".to_string(), api_key.to_string(), true);
-            eprintln!("PING {} {:?}...", count, start_time);
+            
+            eprintln!(">> {} {:?}...", count, start_time);
             let random_asset: Vec<models::AssetResponseDto> = match client.get_random_asset().await {
                 Ok(response) => response,
                 Err(e) => {
@@ -168,14 +183,15 @@ async fn main() -> Result<(), slint::PlatformError> {
                     let image = slint::Image::from_rgba8_premultiplied(pixel_buffer);
                     handle_copy.unwrap().set_image_source(image);
                 });
-                // let handle_copy = ui_handle.clone();
-                // let _ = slint::invoke_from_event_loop(move || handle_copy.unwrap().set_image_text(String::from("Hello, world!").into()));
-                // eprintln!("Image execution time: {:?}", start_time.elapsed());
                 break;
             }   
-        
-            std::thread::sleep(time::Duration::from_millis(2000));
-            // eprintln!("Total execution time: {:?}", start_time.elapsed());
+
+            // Attempt to get the latest message by draining the channel
+            while let Ok(val) = rx.try_recv() {
+                wait_duration = val;
+            }
+                
+            std::thread::sleep(time::Duration::from_millis((wait_duration as u64) * 1000));
             count += 1;
         }
      });
