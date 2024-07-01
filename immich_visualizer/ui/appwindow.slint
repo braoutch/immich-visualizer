@@ -3,11 +3,11 @@ import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox } from 
 export component AppWindow inherits Window {
     title: "QRNote";
     icon: @image-url("../resources/psyduck.png");
-    in-out property<image> qrnote: @image-url("../resources/psyduck.png");
-    out property<string> thetext: "";
-    in property<string> errormsg: "";
-    in property<int> charcount: 0;
-    in property<int> qr_size: 150;
+    in-out property <image> qrnote: @image-url("../resources/psyduck.png");
+    out property <string> thetext: "";
+    in property <string> errormsg: "";
+    in property <int> charcount: 0;
+    in property <int> qr_size: 150;
     callback text-is-edited();
     VerticalBox {
         TextEdit {
@@ -19,17 +19,20 @@ export component AppWindow inherits Window {
                 root.text-is-edited();
             }
         }
+
         LineEdit {
             text: charcount;
             preferred-width: 300px;
             read-only: true;
             horizontal-alignment: center;
         }
+
         Image {
-            source : qrnote;
-            preferred-width: qr_size*1px;
-            preferred-height:qr_size*1px;
+            source: qrnote;
+            preferred-width: qr_size * 1px;
+            preferred-height: qr_size * 1px;
         }
+
         LineEdit {
             text: errormsg;
             preferred-width: 300px;
@@ -41,11 +44,6 @@ export component AppWindow inherits Window {
 
 component SettingsButton inherits Rectangle {
     callback clicked;
-    in property <bool> pressed;
-
-    opacity: touchArea.pressed ? 100% : 60%;
-    animate opacity { duration: 50ms;  }
-    background: #b6b6b600;
 
     Image {
         source: @image-url("../resources/settings.png");
@@ -57,9 +55,13 @@ component SettingsButton inherits Rectangle {
         border-radius: 15px;
         width: parent.width;
         height: parent.height;
-        //color: touchArea.pressed ? #00000050 : #00000000;
-        background: #9a9a9a;
-        border-color: #262626;
+        opacity: touchArea.has-hover ? 100% : 60%;
+        border-width: 1px;
+        border-color: touchArea.has-hover ? #505050 : #ffffff00;
+        animate background { duration: 50ms; }
+        animate opacity { duration: 50ms; }
+        background: touchArea.pressed ? #2b2b2b : #3f3d3d;
+
         z: -1;
     }
 
@@ -90,24 +92,78 @@ component MemoryTile inherits Rectangle {
     }
 }
 
+component OneSetting inherits Rectangle {
+    callback clicked;
+    callback value-changed();
+    in property <bool> pressed;
+    in property <string> title;
+    in property <string> unit;
+    property <bool> spinbox-hovered;
+    in-out property <int> value <=> durationSpinBox.value;
+
+    opacity: 100%;
+
+    animate background { duration: 50ms; }
+    background: touchArea.has-hover ? #3c3c3c : #2a2a2a;
+    border-color: touchArea.has-hover ? #4f4f4f : #00000000;
+    border-width: 1px;
+    border-radius: 15px;
+    
+    touchArea := TouchArea {
+        clicked => {
+            // Delegate to the user of this element
+            root.clicked();
+        }
+    }
+
+    height: 100px;
+
+    HorizontalBox {
+        alignment: center;
+        Text {
+            text: root.title;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            color: #ffffff;
+        }
+
+        durationSpinBox := SpinBox {
+            value: 2;
+            minimum: 1;
+            horizontal-stretch: 0;
+                        edited() => {
+                root.value-changed();
+            }
+        }
+
+        Text {
+            vertical-alignment: center;
+            text: root.unit;
+            horizontal-stretch: 1;
+            color: #ffffff;
+        }
+    }
+}
+
 export component MyWindow inherits Window {
     in property <image> image_source;
     in property <string> image_text;
     in-out property <int> click_count;
     in-out property <int> click_count_native;
     in-out property <int> state: -206;
-    in-out property <int> duration_value <=> durationSpinBox.value;
-    out property<string> thetext: "";
+    in-out property <int> duration_value <=> durationImageSettings.value;
+    out property <string> thetext: "";
     callback settings-clicked();
-    callback duration-value-changed();
+    callback image-duration-value-changed();
+    callback year-duration-value-changed();
 
     states [
         main-view when state == 0: {
-            // circle1.x: 0px; circle1.y: 40px; circle1.background: green;
+        // circle1.x: 0px; circle1.y: 40px; circle1.background: green;
             // circle2.x: 0px; circle2.y: 0px; circle2.background: blue;
         }
         settings-view when state == 1: {
-            // circle1.x: 170px; circle1.y: 70px; circle1.background: green;
+        // circle1.x: 170px; circle1.y: 70px; circle1.background: green;
             // circle2.x: 170px; circle2.y: 00px; circle2.background: blue;
         }
     ]
@@ -118,19 +174,19 @@ export component MyWindow inherits Window {
 
     settingsButtonCustom := SettingsButton {
         x: root.width * 0.93;
-        y: parent.height * 0.02 * root.width/root.height;
+        y: parent.height * 0.02 * root.width / root.height;
         width: 5%;
-        height: self.width;// So that it's a square
-        clicked => { 
+        height: self.width;
+        // So that it's a square
+        clicked => {
             root.click_count += 1;
-            if root.state == 0
-            {
+            if root.state == 0 {
                 root.state = 206;
             } else {
                 root.state = -root.state;
-            } 
-            settings-clicked(); 
-        }    
+            }
+            settings-clicked();
+        }
     }
 
     settingsPanel := Rectangle {
@@ -142,22 +198,23 @@ export component MyWindow inherits Window {
             border-radius: 15px;
             width: parent.width;
             height: parent.height;
-            background: #9a9a9a;
+            background: #363636;
             border-color: #262626;
             z: -1;
         }
+
         VerticalLayout {
             height: 90%;
             width: 90%;
             padding: 5px;
             spacing: 5px;
-            
+            alignment: start;
             Text {
                 text: "PARAMÈTRES";
                 vertical-alignment: top;
                 font-size: 50px;
                 horizontal-alignment: center;
-
+                color: #ffffff;
 
                 // color (in brush): The color of the text. (default value: depends on the style)
                 // font-family (in string): The name of the font family selected for rendering the text.
@@ -172,51 +229,53 @@ export component MyWindow inherits Window {
                 // wrap (in enum TextWrap): The way the text wraps (default value: no-wrap).
 
             }
-            HorizontalBox {
-                Text {
-                    text: "Durée par image:";
-                    horizontal-stretch: 1;
 
-                }
-                durationSpinBox := SpinBox {
-                    value: 2;
-                    minimum: 1;
-                    horizontal-stretch: 0;
-                    edited() => {
-                        root.duration-value-changed();
-                    }
-                }
+            Rectangle {
+                height: 50px;
+                opacity: 0%;
+            }
 
-                Text {
-                    text: "secondes";
-                    horizontal-stretch: 1;
+            OneSetting { 
+                title: "Durée par année";
+                unit: "minutes";
+                value-changed() => {
+                    year-duration-value-changed();
                 }
             }
-            TextEdit {
-                text: thetext;
-                preferred-width: 300px;
-                preferred-height: 300px;
-                edited(text) => {
-                    thetext = text;
+
+            durationImageSettings := OneSetting { 
+                title: "Durée par image";
+                unit: "secondes";
+                value-changed() => {
+                    image-duration-value-changed();
                 }
             }
-            LineEdit {
-                text: "charcount";
-                preferred-width: 300px;
-                read-only: true;
-                horizontal-alignment: center;
-            }
-            Image {
-                source : @image-url("../debug.jpg");
-                preferred-width: 30*1px;
-                preferred-height:30*1px;
-            }
-            LineEdit {
-                text: "errormsg";
-                preferred-width: 300px;
-                read-only: true;
-                horizontal-alignment: center;
-            }
+
+            // TextEdit {
+            //     text: thetext;
+            //     preferred-width: 300px;
+            //     preferred-height: 300px;
+            //     edited(text) => {
+            //         thetext = text;
+            //     }
+            // }
+            // LineEdit {
+            //     text: "charcount";
+            //     preferred-width: 300px;
+            //     read-only: true;
+            //     horizontal-alignment: center;
+            // }
+            // Image {
+            //     source : @image-url("../debug.jpg");
+            //     preferred-width: 30*1px;
+            //     preferred-height:30*1px;
+            // }
+            // LineEdit {
+            //     text: "errormsg";
+            //     preferred-width: 300px;
+            //     read-only: true;
+            //     horizontal-alignment: center;
+            // }
         }
     }
 }

@@ -107,7 +107,7 @@ pub async fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    ui.on_duration_value_changed({
+    ui.on_image_duration_value_changed({
         let ui_handle = ui.as_weak();
         move || {
             let ui = ui_handle.unwrap();
