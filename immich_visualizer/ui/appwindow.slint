@@ -1,47 +1,5 @@
 import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox } from "std-widgets.slint";
 
-export component AppWindow inherits Window {
-    title: "QRNote";
-    icon: @image-url("../resources/psyduck.png");
-    in-out property <image> qrnote: @image-url("../resources/psyduck.png");
-    out property <string> thetext: "";
-    in property <string> errormsg: "";
-    in property <int> charcount: 0;
-    in property <int> qr_size: 150;
-    callback text-is-edited();
-    VerticalBox {
-        TextEdit {
-            text: thetext;
-            preferred-width: 300px;
-            preferred-height: 300px;
-            edited(text) => {
-                thetext = text;
-                root.text-is-edited();
-            }
-        }
-
-        LineEdit {
-            text: charcount;
-            preferred-width: 300px;
-            read-only: true;
-            horizontal-alignment: center;
-        }
-
-        Image {
-            source: qrnote;
-            preferred-width: qr_size * 1px;
-            preferred-height: qr_size * 1px;
-        }
-
-        LineEdit {
-            text: errormsg;
-            preferred-width: 300px;
-            read-only: true;
-            horizontal-alignment: center;
-        }
-    }
-}
-
 component SettingsButton inherits Rectangle {
     callback clicked;
 
@@ -194,14 +152,15 @@ export component MyWindow inherits Window {
         height: 50%;
         width: 50%;
         visible: root.state == 206;
-        background_panel := Rectangle {
-            border-radius: 15px;
-            width: parent.width;
-            height: parent.height;
-            background: #363636;
-            border-color: #262626;
-            z: -1;
-        }
+        
+        border-radius: 15px;
+        background: #363636;
+        border-color: #262626;
+        drop-shadow-offset-x: 0px;
+        drop-shadow-offset-y: 0px;
+        drop-shadow-blur: 20px;
+        drop-shadow-color: #000000;
+        // z: -1;
 
         VerticalLayout {
             height: 90%;
