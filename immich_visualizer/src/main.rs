@@ -95,8 +95,10 @@ pub async fn main() -> Result<(), slint::PlatformError> {
     ui.window().set_fullscreen(true);
 
     // Create a channel to communicate with the event loop
-    let (tx, rx) = mpsc::channel();
-    let tx1 = tx.clone();
+    let (tx_ui_image_duration, rx_ui_image_duration) = mpsc::channel();
+    let (tx_ui_enable_png, rx_ui_enable_png) = mpsc::channel();
+    let tx1_ui_image_duration = tx_ui_image_duration.clone();
+    let tx1_ui_enable_png = tx_ui_enable_png.clone();
 
     ui.on_settings_clicked({
         let ui_handle = ui.as_weak();
@@ -112,21 +114,32 @@ pub async fn main() -> Result<(), slint::PlatformError> {
         move || {
             let ui = ui_handle.unwrap();
             eprintln!("Duration value changed: {}", ui.get_duration_value());
-            tx1.send(ui.get_duration_value()).unwrap();
+            tx1_ui_image_duration.send(ui.get_duration_value()).unwrap();
+        }
+    });
+
+    ui.on_png_settings_changed({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.unwrap();
+            eprintln!("PNG enabled: {}", ui.get_png_value());
+            tx1_ui_enable_png.send(ui.get_png_value()).unwrap();
         }
     });
 
     let ui_handle = ui.as_weak();
-    tx.send(ui.get_duration_value()).unwrap();
+    tx_ui_image_duration.send(ui.get_duration_value()).unwrap();
+    tx_ui_enable_png.send(ui.get_png_value()).unwrap();
 
     tokio::spawn(async move {
         let mut count = 0;
-        let mut wait_duration = rx.recv().unwrap();
+        let mut wait_duration = rx_ui_image_duration.recv().unwrap();
+        let mut enable_png = rx_ui_enable_png.recv().unwrap();
         loop {
             let start_time = Instant::now();
             let client = immich::ApiClient::new("http://192.168.50.214:2283/api".to_string(), api_key.to_string(), true);
             
-            eprintln!(">> {} {:?}...", count, start_time);
+            eprintln!("Loop >> {} {:?}...", count, start_time);
             let random_asset: Vec<models::AssetResponseDto> = match client.get_random_asset().await {
                 Ok(response) => response,
                 Err(e) => {
@@ -139,12 +152,23 @@ pub async fn main() -> Result<(), slint::PlatformError> {
             eprintln!("{} assets retrieved", random_asset.len());
 
             for (_index, asset) in random_asset.iter().enumerate() {
-                if asset.original_mime_type != "image/jpeg" {
+                // let mut compatibility_list = vec!["image/jpeg", "image/heic"];
+                let mut compatibility_list = vec!["image/jpeg"];
+
+                // should we skip pngs? Can be good to skip pngs becauses these are usually shitty screenshots of phones
+                while let Ok(val) = rx_ui_enable_png.try_recv() {
+                    enable_png = val;
+                }
+
+                if enable_png {
+                    compatibility_list.push("image/png");
+                }
+
+                if !compatibility_list.contains(&asset.original_mime_type.as_str()) {
                     eprintln!("Skip image format: {:?}", asset.original_mime_type);
                     continue;
                 }
                 eprintln!("Image format: {:?}", asset.original_mime_type);
-
 
                 eprintln!("Asset: {:?}", asset.id.clone());
                 let _image: (Bytes, String) = match client.download_image(asset.id.clone()).await {
@@ -187,10 +211,11 @@ pub async fn main() -> Result<(), slint::PlatformError> {
             }   
 
             // Attempt to get the latest message by draining the channel
-            while let Ok(val) = rx.try_recv() {
+            while let Ok(val) = rx_ui_image_duration.try_recv() {
                 wait_duration = val;
             }
-                
+            
+            eprintln!("Sleeping for {} seconds...", wait_duration);
             std::thread::sleep(time::Duration::from_millis((wait_duration as u64) * 1000));
             count += 1;
         }

@@ -1,0 +1,72 @@
+import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox, Switch } from "std-widgets.slint";
+
+component OneSetting inherits Rectangle {
+    callback clicked;
+    callback value-changed();
+    in property <bool> pressed;
+    in property <string> title;
+    in property <string> suffix;
+    property <bool> spinbox-hovered;
+    in-out property <int> spinbox_value;
+    in-out property <bool> switch_value;
+    in property <bool> show_spinbox;
+    in property <bool> show_switch;
+
+    opacity: 100%;
+
+    animate background { duration: 50ms; }
+    background: touchArea.has-hover ? #3c3c3c : #2a2a2a;
+    border-color: touchArea.has-hover ? #4f4f4f : #00000000;
+    border-width: 1px;
+    border-radius: 15px;
+    touchArea := TouchArea {
+        clicked => {
+            // Delegate to the user of this element
+            root.clicked();
+        }
+    }
+
+    height: 100px;
+
+    HorizontalBox {
+        alignment: center;
+        Text {
+            text: root.title;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            color: #ffffff;
+        }
+
+        if root.show_spinbox:  
+            spinBox := SpinBox {
+            visible: root.show_spinbox;
+            value: 2;
+            minimum: 1;
+            horizontal-stretch: 0;
+            edited() => {
+                root.spinbox_value = spinBox.value;
+                root.value-changed();
+            }
+        }
+
+        if root.show_switch: 
+            switch := Switch {
+            visible: root.show_switch;
+            text: root.suffix;
+            toggled => {
+                root.switch_value = switch.checked;
+                root.value-changed();
+            }
+        }
+
+        spinbox_unit := Text {
+            visible: root.show_spinbox;
+            vertical-alignment: center;
+            text: root.suffix;
+            horizontal-stretch: 1;
+            color: #ffffff;
+        }
+    }
+}
+
+export  { OneSetting }

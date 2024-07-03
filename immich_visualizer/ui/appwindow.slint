@@ -1,4 +1,5 @@
-import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox } from "std-widgets.slint";
+import { HorizontalBox, VerticalBox, TextEdit, LineEdit, Button, SpinBox, Switch } from "std-widgets.slint";
+import { OneSetting } from "./OneSetting.slint";
 
 component SettingsButton inherits Rectangle {
     callback clicked;
@@ -50,70 +51,19 @@ component MemoryTile inherits Rectangle {
     }
 }
 
-component OneSetting inherits Rectangle {
-    callback clicked;
-    callback value-changed();
-    in property <bool> pressed;
-    in property <string> title;
-    in property <string> unit;
-    property <bool> spinbox-hovered;
-    in-out property <int> value <=> durationSpinBox.value;
-
-    opacity: 100%;
-
-    animate background { duration: 50ms; }
-    background: touchArea.has-hover ? #3c3c3c : #2a2a2a;
-    border-color: touchArea.has-hover ? #4f4f4f : #00000000;
-    border-width: 1px;
-    border-radius: 15px;
-    
-    touchArea := TouchArea {
-        clicked => {
-            // Delegate to the user of this element
-            root.clicked();
-        }
-    }
-
-    height: 100px;
-
-    HorizontalBox {
-        alignment: center;
-        Text {
-            text: root.title;
-            horizontal-stretch: 1;
-            vertical-alignment: center;
-            color: #ffffff;
-        }
-
-        durationSpinBox := SpinBox {
-            value: 2;
-            minimum: 1;
-            horizontal-stretch: 0;
-                        edited() => {
-                root.value-changed();
-            }
-        }
-
-        Text {
-            vertical-alignment: center;
-            text: root.unit;
-            horizontal-stretch: 1;
-            color: #ffffff;
-        }
-    }
-}
-
 export component MyWindow inherits Window {
     in property <image> image_source;
     in property <string> image_text;
     in-out property <int> click_count;
     in-out property <int> click_count_native;
     in-out property <int> state: -206;
-    in-out property <int> duration_value <=> durationImageSettings.value;
+    in-out property <int> duration_value <=> durationImageSettings.spinbox_value;
+    in-out property <bool> png_value <=> showPngSettings.switch_value;
     out property <string> thetext: "";
     callback settings-clicked();
     callback image-duration-value-changed();
     callback year-duration-value-changed();
+    callback png-settings-changed();
 
     states [
         main-view when state == 0: {
@@ -194,47 +144,31 @@ export component MyWindow inherits Window {
                 opacity: 0%;
             }
 
-            OneSetting { 
+            durationYearSettings := OneSetting { 
                 title: "Durée par année";
-                unit: "minutes";
+                suffix: "minutes";
                 value-changed() => {
                     year-duration-value-changed();
                 }
+                show_spinbox: true;
             }
 
             durationImageSettings := OneSetting { 
                 title: "Durée par image";
-                unit: "secondes";
+                suffix: "secondes";
                 value-changed() => {
                     image-duration-value-changed();
                 }
+                show_spinbox: true;
             }
 
-            // TextEdit {
-            //     text: thetext;
-            //     preferred-width: 300px;
-            //     preferred-height: 300px;
-            //     edited(text) => {
-            //         thetext = text;
-            //     }
-            // }
-            // LineEdit {
-            //     text: "charcount";
-            //     preferred-width: 300px;
-            //     read-only: true;
-            //     horizontal-alignment: center;
-            // }
-            // Image {
-            //     source : @image-url("../debug.jpg");
-            //     preferred-width: 30*1px;
-            //     preferred-height:30*1px;
-            // }
-            // LineEdit {
-            //     text: "errormsg";
-            //     preferred-width: 300px;
-            //     read-only: true;
-            //     horizontal-alignment: center;
-            // }
+            showPngSettings := OneSetting { 
+                title: "Afficher les PNG ";
+                value-changed() => {
+                    png-settings-changed();
+                }
+                show_switch: true;
+            }
         }
     }
 }
