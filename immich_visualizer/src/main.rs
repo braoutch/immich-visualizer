@@ -176,22 +176,35 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                     }
                 };
                 // eprintln!("Image prep 1 execution time: {:?}", start_time.elapsed());
-                let pixel_buffer: SharedPixelBuffer<Rgba8Pixel>;
+                let mut pixel_buffer: SharedPixelBuffer<Rgba8Pixel>;
+
+                // try to open HEIC files...
                 if &image_format.unwrap() == &ImageFormat::OpenExr {
                     pixel_buffer = match safe_read_and_decode_heic_memory(
                         &_image.0,
                     ) {
                         Ok(response) => response,
-                        Err(e) => {
-                            eprintln!("Error converting image: {:?}. Skipping asset {}", e, &asset.id);
-                            continue;
+                        Err(_e) => {
+                                // eprintln!("Error HEIC converting image: {:?}. Trying JPEG. {}", _e, &asset.id);
+                                pixel_buffer = match bytes_to_shared_image(&_image.0, ImageFormat::Jpeg) {
+                                    Ok(response) => {
+                                        eprintln!("HEIC image that was actually a JPEG recovered.");
+                                        response
+                                    },
+                                    Err(e) => {
+                                        eprintln!("Error JPEG fallback converting image: {:?}. Skipping.", e);
+                                        eprintln!("Asset ID: {:?} SKIPPED.", &asset.id);
+                                        continue;
+                                    }
+                                };
+                                pixel_buffer
                         }
                     };
                 } else {
                     pixel_buffer = match bytes_to_shared_image(&_image.0, image_format.unwrap()) {
                         Ok(response) => response,
                         Err(e) => {
-                            eprintln!("Error converting image: {:?}. Skipping.", e);
+                            eprintln!("Error JPEG converting image: {:?}. Skipping.", e);
                             continue;
                         }
                     };
