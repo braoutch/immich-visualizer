@@ -1,7 +1,10 @@
 # immich-visualizer
 Immich-based digital photo frame
 
-Fullscreen =>
+## dependencies
+libheif: 
+
+Fullscreen => `sudo apt install libheif-dev`
 ```
 export SLINT_FULLSCREEN=1
 ```
