@@ -14,11 +14,12 @@ use bytes::Bytes;
 use image::ImageFormat;
 use slint::Rgba8Pixel;
 use slint::SharedPixelBuffer;
-use std::time::Instant;
 
 mod immich;
-mod heif;
-use crate::heif::safe_read_and_decode_heic_memory;
+mod heif_utils;
+
+// import all function from the heif_utils module
+use heif_utils::*;
 
 extern crate openapi;
 
@@ -32,118 +33,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(start)]
 pub fn start() {
     main().unwrap();
-}
-
-// HEIF reader
-// use libheif_sys as lh;
-// use std::ffi;
-// use std::ptr;
-
-// fn read_and_decode_heic_memory(
-//     data: *const libc::c_void,
-//     len: usize,
-// ) -> Result<SharedPixelBuffer<Rgba8Pixel>, String> {
-//     unsafe {
-//         lh::heif_init(ptr::null_mut());
-
-//         let ctx = lh::heif_context_alloc();
-//         assert_ne!(ctx, ptr::null_mut());
-
-//         let c_name = ffi::CString::new("data/test.heif").unwrap();
-//         // let err = lh::heif_context_read_from_file(ctx, c_name.as_ptr(), ptr::null());
-//         let err = lh::heif_context_read_from_memory_without_copy(ctx, data, len, ptr::null());
-//         assert_eq!(err.code, 0);
-
-//         let mut handle = ptr::null_mut();
-//         let err = lh::heif_context_get_primary_image_handle(ctx, &mut handle);
-//         assert_eq!(err.code, 0);
-//         assert!(!handle.is_null());
-
-//         let width = lh::heif_image_handle_get_width(handle);
-//         assert_eq!(width, 4032);
-//         let height = lh::heif_image_handle_get_height(handle);
-//         assert_eq!(height, 3024);
-
-//         let options = lh::heif_decoding_options_alloc();
-
-//         let mut image = ptr::null_mut();
-//         let err = lh::heif_decode_image(
-//             handle,
-//             &mut image,
-//             lh::heif_colorspace_heif_colorspace_RGB,
-//             lh::heif_chroma_heif_chroma_444,
-//             options,
-//         );
-//         lh::heif_decoding_options_free(options);
-//         assert_eq!(err.code, 0);
-//         assert!(!image.is_null());
-
-//         let colorspace = lh::heif_image_get_colorspace(image);
-//         assert_eq!(colorspace, lh::heif_colorspace_heif_colorspace_RGB);
-//         let chroma_format = lh::heif_image_get_chroma_format(image);
-//         assert_eq!(chroma_format, lh::heif_chroma_heif_chroma_444);
-//         let width = lh::heif_image_get_width(image, lh::heif_channel_heif_channel_R);
-//         assert_eq!(width, 4032);
-//         let height = lh::heif_image_get_height(image, lh::heif_channel_heif_channel_R);
-//         assert_eq!(height, 3024);
-
-//         //convert the image to a DynamicImage
-//         // let dynamic_image = image::DynamicImage::ImageRgba8(image::RgbaImage::from_raw(
-//         //     width as u32,
-//         //     height as u32,
-//         //     std::slice::from_raw_parts(
-//         //         lh::heif_image_get_plane(image, lh::heif_channel_heif_channel_R) as *const u8,
-//         //         (width * height * 4) as usize,
-//         //     ).to_vec(),
-//         // ).unwrap());
-
-//         // let rgba_img = dynamic_image.to_rgba8();
-//         // // eprintln!("2 execution time: {:?}", start_time.elapsed());
-
-//         // let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-//         //     rgba_img.as_raw(),
-//         //     rgba_img.width(),
-//         //     rgba_img.height(),
-//         // );
-
-//         lh::heif_context_free(ctx);
-
-//         lh::heif_deinit();
-//         // return Ok(buffer);
-//     };
-//     return Err("HEIC Error".to_string());
-// }
-
-fn type_str_to_image_type(type_str: &str) -> Option<ImageFormat> {
-    match type_str {
-        "image/jpeg" => Some(ImageFormat::Jpeg),
-        "image/png" => Some(ImageFormat::Png),
-        "image/gif" => Some(ImageFormat::Gif),
-        "image/bmp" => Some(ImageFormat::Bmp),
-        "image/tiff" => Some(ImageFormat::Tiff),
-        "image/x-icon" => Some(ImageFormat::Ico),
-        "image/heic" => Some(ImageFormat::OpenExr),
-        _ => None,
-    }
-}
-
-// Function to convert Bytes to an image that Slint can display
-fn bytes_to_shared_image(
-    bytes: &Bytes,
-    format: ImageFormat,
-) -> Result<SharedPixelBuffer<Rgba8Pixel>, image::ImageError> {
-    // let start_time = Instant::now();
-    let img = image::load_from_memory_with_format(&bytes, format)?;
-    // eprintln!("1 execution time: {:?}", start_time.elapsed());
-    let rgba_img = img.to_rgba8();
-    // eprintln!("2 execution time: {:?}", start_time.elapsed());
-
-    let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-        rgba_img.as_raw(),
-        rgba_img.width(),
-        rgba_img.height(),
-    );
-    Ok(buffer)
 }
 
 #[tokio::main]
@@ -168,8 +57,8 @@ pub async fn main() -> Result<(), slint::PlatformError> {
         true,
     );
     let _res = match client.ping().await {
-        Ok(response) => {
-            println!("Ping response: {:?}", response);
+        Ok(_response) => {
+            // println!("Ping response: {:?}", _response);
             Ok(String::from("Immich connected."))
         }
         Err(e) => {
@@ -217,21 +106,23 @@ pub async fn main() -> Result<(), slint::PlatformError> {
     let ui_handle = ui.as_weak();
     tx_ui_image_duration.send(ui.get_duration_value()).unwrap();
     tx_ui_enable_png.send(ui.get_png_value()).unwrap();
+    eprintln!("Initial duration: {}", ui.get_duration_value());
+    eprintln!("Initial PNG: {}", ui.get_png_value());
 
     tokio::spawn(async move {
-        let mut count = 0;
+        // let mut count = 0;
         let mut wait_duration = rx_ui_image_duration.recv().unwrap();
         let mut enable_png = rx_ui_enable_png.recv().unwrap();
         loop {
-            eprint!("Loop again...");
-            let start_time = Instant::now();
+            // eprint!("Loop again...");
+            // let start_time: Instant = Instant::now();
             let client = immich::ApiClient::new(
                 "http://192.168.50.214:2283/api".to_string(),
                 api_key.to_string(),
-                true,
+                false,
             );
 
-            eprintln!("Loop >> {} {:?}...", count, start_time);
+            // eprintln!("Loop >> {} {:?}...", count, start_time);
             let random_asset: Vec<models::AssetResponseDto> = match client.get_random_asset().await
             {
                 Ok(response) => response,
@@ -242,11 +133,11 @@ pub async fn main() -> Result<(), slint::PlatformError> {
             };
 
             // print the number of items in random_asset
-            eprintln!("{} assets retrieved", random_asset.len());
+            // eprintln!("{} assets retrieved", random_asset.len());
 
             for (_index, asset) in random_asset.iter().enumerate() {
-                // let mut compatibility_list = vec!["image/jpeg", "image/heic"];
-                let mut compatibility_list = vec!["image/heic"];
+                let mut compatibility_list = vec!["image/jpeg", "image/heic"];
+                // let mut compatibility_list = vec!["image/heic"];
 
                 // should we skip pngs? Can be good to skip pngs becauses these are usually shitty screenshots of phones
                 while let Ok(val) = rx_ui_enable_png.try_recv() {
@@ -261,9 +152,9 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                     eprintln!("Skip image format: {:?}", asset.original_mime_type);
                     continue;
                 }
-                eprintln!("Image format: {:?}", asset.original_mime_type);
+                // eprintln!("Image format: {:?}", asset.original_mime_type);
 
-                eprintln!("Asset: {:?}", asset.id.clone());
+                // eprintln!("Asset: {:?}", asset.id.clone());
                 let _image: (Bytes, String) = match client.download_image(asset.id.clone()).await {
                     Ok(response) => response,
                     Err(e) => {
@@ -292,7 +183,7 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                     ) {
                         Ok(response) => response,
                         Err(e) => {
-                            eprintln!("Error converting image: {:?}. Skipping.", e);
+                            eprintln!("Error converting image: {:?}. Skipping asset {}", e, &asset.id);
                             continue;
                         }
                     };
@@ -305,15 +196,13 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                         }
                     };
                 }
-                eprintln!("Image prep 2 execution time: {:?}", start_time.elapsed());
+                // eprintln!("Image prep 2 execution time: {:?}", start_time.elapsed());
 
                 // let ui = ui_handle.unwrap();
                 let handle_copy = ui_handle.clone();
                 let _ = slint::invoke_from_event_loop(move || {
-                    eprint!("Setting image...");
                     let image = slint::Image::from_rgba8_premultiplied(pixel_buffer);
                     handle_copy.unwrap().set_image_source(image);
-                    eprint!("Done setting image...");
                 });
                 break;
             }
@@ -323,9 +212,9 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                 wait_duration = val;
             }
 
-            eprintln!("Sleeping for {} seconds...", wait_duration);
+            // eprintln!("Sleeping for {} seconds...", wait_duration);
             std::thread::sleep(time::Duration::from_millis((wait_duration as u64) * 1000));
-            count += 1;
+            // count += 1;
         }
     });
 

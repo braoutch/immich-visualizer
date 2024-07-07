@@ -4,7 +4,7 @@ Immich-based digital photo frame
 ## dependencies
 libheif: 
 
-Fullscreen => `sudo apt install libheif-dev`
+Fullscreen => `sudo apt install libheif-dev` or install libheif from source if the version is < 1.17
 ```
 export SLINT_FULLSCREEN=1
 ```

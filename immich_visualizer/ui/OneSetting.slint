@@ -53,6 +53,7 @@ component OneSetting inherits Rectangle {
             switch := Switch {
             visible: root.show_switch;
             text: root.suffix;
+            checked: true;
             toggled => {
                 root.switch_value = switch.checked;
                 root.value-changed();
