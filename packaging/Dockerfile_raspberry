@@ -1,0 +1,21 @@
+# FROM arm64v8/ubuntu:22.04
+FROM rust:slim-bookworm
+
+RUN echo "Coucou !"
+RUN apt update && apt install -y git cmake build-essential libssl-dev openssl
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+
+# install libheif dependency
+RUN git clone https://github.com/strukturag/libheif && \
+                cd libheif && mkdir build && cd build && \ 
+                cmake .. && make -j6 && \
+                make install && \
+                cd ../.. && rm -rf libheif
+
+WORKDIR /
+COPY immich_visualizer immich_visualizer
+RUN cargo --version
+WORKDIR immich_visualizer
+RUN --mount=type=cache,target=/usr/local/cargo,from=rust:1.79.0,source=/usr/local/cargo \
+    --mount=type=cache,target=target \ 
+    cargo build

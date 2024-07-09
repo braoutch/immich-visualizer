@@ -21,3 +21,11 @@ export IMMICH_API_KEY=<your api key>
 - Display videos too, but no more than 10 sec
 - Display more format (HEIC, etc.)
 - Settings panel
+
+## Cross compilation
+```
+sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
+```
+docker buildx build --platform arm64 -f ./packaging/Dockerfile_raspberry . --progress=plain
+```
