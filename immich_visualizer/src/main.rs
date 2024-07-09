@@ -19,7 +19,7 @@ mod immich;
 mod heif_utils;
 
 // import all function from the heif_utils module
-use heif_utils::*;
+pub use crate::heif_utils::heif_utils_mod;
 
 extern crate openapi;
 
@@ -165,7 +165,7 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                 // eprintln!("DL execution time: {:?}", start_time.elapsed());
 
                 // check the type of the image and, if it's not jpeg, continue the loop
-                let image_format = match type_str_to_image_type(&_image.1) {
+                let image_format = match heif_utils_mod::type_str_to_image_type(&_image.1) {
                     Some(ImageFormat::Jpeg) => Some(ImageFormat::Jpeg),
                     Some(ImageFormat::Png) => Some(ImageFormat::Png),
                     Some(ImageFormat::OpenExr) => Some(ImageFormat::OpenExr),
@@ -180,13 +180,13 @@ pub async fn main() -> Result<(), slint::PlatformError> {
 
                 // try to open HEIC files...
                 if &image_format.unwrap() == &ImageFormat::OpenExr {
-                    pixel_buffer = match safe_read_and_decode_heic_memory(
+                    pixel_buffer = match heif_utils_mod::safe_read_and_decode_heic_memory(
                         &_image.0,
                     ) {
                         Ok(response) => response,
                         Err(_e) => {
                                 // eprintln!("Error HEIC converting image: {:?}. Trying JPEG. {}", _e, &asset.id);
-                                pixel_buffer = match bytes_to_shared_image(&_image.0, ImageFormat::Jpeg) {
+                                pixel_buffer = match heif_utils_mod::bytes_to_shared_image(&_image.0, ImageFormat::Jpeg) {
                                     Ok(response) => {
                                         eprintln!("HEIC image that was actually a JPEG recovered.");
                                         response
@@ -201,7 +201,7 @@ pub async fn main() -> Result<(), slint::PlatformError> {
                         }
                     };
                 } else {
-                    pixel_buffer = match bytes_to_shared_image(&_image.0, image_format.unwrap()) {
+                    pixel_buffer = match heif_utils_mod::bytes_to_shared_image(&_image.0, image_format.unwrap()) {
                         Ok(response) => response,
                         Err(e) => {
                             eprintln!("Error JPEG converting image: {:?}. Skipping.", e);
