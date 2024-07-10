@@ -2,7 +2,7 @@
 FROM rust:slim-bookworm
 
 RUN echo "Coucou !"
-RUN apt update && apt install -y git cmake build-essential libssl-dev openssl pkg-config
+RUN apt update && apt install -y git cmake build-essential libssl-dev openssl pkg-config libclang-dev curl
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
 
 # install libheif dependency

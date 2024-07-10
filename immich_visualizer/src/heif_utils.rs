@@ -1,5 +1,5 @@
 // use libheif_rs::HeifError;
-pub mod heif_utils {
+pub mod heif_utils_mod {
     use bytes::Bytes;
     use image::ImageFormat;
     use libheif_rs::{ColorSpace, HeifContext, ItemId, LibHeif, RgbChroma};
