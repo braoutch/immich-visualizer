@@ -1,5 +1,4 @@
-# FROM arm64v8/ubuntu:22.04
-FROM rust:slim-bookworm
+FROM --platform=arm64 rust:slim-bookworm as builder
 
 RUN echo "Coucou !"
 RUN apt update && apt install -y git cmake build-essential libssl-dev openssl pkg-config libclang-dev curl
@@ -19,4 +18,8 @@ RUN cargo --version
 WORKDIR immich_visualizer
 RUN --mount=type=cache,target=/usr/local/cargo,from=rust:1.79.0,source=/usr/local/cargo \
     --mount=type=cache,target=target \ 
-    cargo build
+    cargo build --release && cp ./target/release/immich_visualizer /immich_visualizer_bin
+
+# make a dockerfile output the built binary in the end of the docker build
+FROM scratch
+COPY --from=builder /immich_visualizer_bin /immich_visualizer
