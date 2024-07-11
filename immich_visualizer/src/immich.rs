@@ -94,13 +94,13 @@ impl ApiClient {
         message
     }
 
-    pub async fn get_random_asset(&self) -> Result<Vec<models::AssetResponseDto>, String> {
+    pub async fn get_random_asset(&self, count: u32) -> Result<Vec<models::AssetResponseDto>, String> {
         // Simulate an API call
         if self.config.base_path.is_empty() {
             return Err("Base URL is empty".to_string())
         }
 
-        let message: Result<Vec<models::AssetResponseDto>, String> = match get_random(&self.config, Some(30.0)).await {
+        let message: Result<Vec<models::AssetResponseDto>, String> = match get_random(&self.config, Some(count)).await {
             Ok(response) => {
                 if self.verbose {
                     // println!("Ping response: {:?}", response);

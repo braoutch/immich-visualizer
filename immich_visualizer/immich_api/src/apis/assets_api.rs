@@ -525,7 +525,7 @@ pub async fn get_memory_lane(configuration: &configuration::Configuration, day: 
     }
 }
 
-pub async fn get_random(configuration: &configuration::Configuration, count: Option<f64>) -> Result<Vec<models::AssetResponseDto>, Error<GetRandomError>> {
+pub async fn get_random(configuration: &configuration::Configuration, count: Option<u32>) -> Result<Vec<models::AssetResponseDto>, Error<GetRandomError>> {
     let local_var_configuration = configuration;
 
     let local_var_client = &local_var_configuration.client;
