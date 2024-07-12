@@ -106,9 +106,6 @@ pub async fn run(api_key: String) -> Result<(), slint::PlatformError> {
                 }
             };
 
-            // print the number of items in random_asset
-            // eprintln!("{} assets retrieved", random_asset.len());
-
             for (_index, asset) in random_asset.iter().enumerate() {
                 let mut compatibility_list = vec!["image/jpeg", "image/heic"];
                 // let mut compatibility_list = vec!["image/heic"];
@@ -140,9 +137,9 @@ pub async fn run(api_key: String) -> Result<(), slint::PlatformError> {
 
                 // check the type of the image and, if it's not jpeg, continue the loop
                 let image_format = match heif_utils_mod::type_str_to_image_type(&_image.1) {
-                    Some(ImageFormat::Jpeg) => Some(ImageFormat::Jpeg),
-                    Some(ImageFormat::Png) => Some(ImageFormat::Png),
-                    Some(ImageFormat::OpenExr) => Some(ImageFormat::OpenExr),
+                    Some(ImageFormat::Jpeg) => ImageFormat::Jpeg,
+                    Some(ImageFormat::Png) => ImageFormat::Png,
+                    Some(ImageFormat::OpenExr) => ImageFormat::OpenExr,
                     _ => {
                         // print the error
                         eprintln!("Unsupported format {}", &_image.1);
@@ -150,39 +147,14 @@ pub async fn run(api_key: String) -> Result<(), slint::PlatformError> {
                     }
                 };
                 // eprintln!("Image prep 1 execution time: {:?}", start_time.elapsed());
-                let mut pixel_buffer: SharedPixelBuffer<Rgba8Pixel>;
+                let pixel_buffer: SharedPixelBuffer<Rgba8Pixel> =  match heif_utils_mod::open_image_with_format(&_image.0, image_format){
+                    Ok(response) => response,    
+                    Err(_e) => {
+                        eprintln!("Error opening the image");
+                        continue;
+                    }
+                };
 
-                // try to open HEIC files...
-                if &image_format.unwrap() == &ImageFormat::OpenExr {
-                    pixel_buffer = match heif_utils_mod::safe_read_and_decode_heic_memory(
-                        &_image.0,
-                    ) {
-                        Ok(response) => response,
-                        Err(_e) => {
-                                // eprintln!("Error HEIC converting image: {:?}. Trying JPEG. {}", _e, &asset.id);
-                                pixel_buffer = match heif_utils_mod::bytes_to_shared_image(&_image.0, ImageFormat::Jpeg) {
-                                    Ok(response) => {
-                                        eprintln!("HEIC image that was actually a JPEG recovered.");
-                                        response
-                                    },
-                                    Err(e) => {
-                                        eprintln!("Error JPEG fallback converting image: {:?}. Skipping.", e);
-                                        eprintln!("Asset ID: {:?} SKIPPED.", &asset.id);
-                                        continue;
-                                    }
-                                };
-                                pixel_buffer
-                        }
-                    };
-                } else {
-                    pixel_buffer = match heif_utils_mod::bytes_to_shared_image(&_image.0, image_format.unwrap()) {
-                        Ok(response) => response,
-                        Err(e) => {
-                            eprintln!("Error JPEG converting image: {:?}. Skipping.", e);
-                            continue;
-                        }
-                    };
-                }
                 // eprintln!("Image prep 2 execution time: {:?}", start_time.elapsed());
 
                 // let ui = ui_handle.unwrap();

@@ -101,4 +101,42 @@ pub mod heif_utils_mod {
             _ => None,
         }
     }
+
+    pub fn open_image_with_format(
+        bytes: &Bytes,
+        image_format: ImageFormat,
+    ) -> Result<SharedPixelBuffer<Rgba8Pixel>, String> {
+        let mut pixel_buffer: SharedPixelBuffer<Rgba8Pixel>;
+
+        // try to open HEIC files...
+        if &image_format == &ImageFormat::OpenExr {
+            pixel_buffer = match safe_read_and_decode_heic_memory(&bytes) {
+                Ok(response) => response,
+                Err(_e) => {
+                    // eprintln!("Error HEIC converting image: {:?}. Trying JPEG. {}", _e, &asset.id);
+                    pixel_buffer = match bytes_to_shared_image(bytes, ImageFormat::Jpeg) {
+                        Ok(response) => {
+                            eprintln!("HEIC image that was actually a JPEG recovered.");
+                            response
+                        }
+                        Err(e) => {
+                            eprintln!("Error JPEG fallback converting image: {:?}. Skipping.", e);
+                            return Err("Error converting image".to_string());
+                        }
+                    };
+                    pixel_buffer
+                }
+            };
+            return Ok(pixel_buffer);
+        } else {
+            pixel_buffer = match bytes_to_shared_image(bytes, image_format) {
+                Ok(response) => response,
+                Err(e) => {
+                    eprintln!("Error JPEG converting image: {:?}. Skipping.", e);
+                    return Err("Error converting image".to_string());
+                }
+            };
+        }
+        Ok(pixel_buffer)
+    }
 }
